@@ -1,5 +1,7 @@
 import re
 
+VERBOSE = False
+
 
 def read_input(path):
     memory_string = ''
@@ -10,16 +12,26 @@ def read_input(path):
 
 
 def find_mult_instructions(memory_string):
-    regex_pattern = r'mul\(([\d]+),([\d]+)\)'
+    regex_pattern = r"mul\(([\d]+),([\d]+)\)|(don't\(\))|(do\(\))"
 
     return re.findall(regex_pattern, memory_string)
 
 
-def compute_mult_instructions(mult_instructions):
+def compute_mult_instructions(mult_instructions, include_conditionals=False):
     result = 0
 
-    for instruction in mult_instructions:
-        result += int(instruction[0]) * int(instruction[1])
+    do_flag = True
+    for i, instruction_tuple in enumerate(mult_instructions):
+        if VERBOSE:
+            print(i, instruction_tuple)
+
+        if include_conditionals and instruction_tuple[2] == "don't()":
+            do_flag = False
+        elif instruction_tuple[3] == "do()":
+            do_flag = True
+        elif do_flag:
+            result += int(instruction_tuple[0]) * int(instruction_tuple[1])
+
     return result
 
 
@@ -29,7 +41,5 @@ if __name__ == '__main__':
     # print(memory_string)
 
     mult_matches = find_mult_instructions(memory_string)
-    # print(mult_matches)
-
-    result = compute_mult_instructions(mult_matches)
+    result = compute_mult_instructions(mult_matches, include_conditionals=True)
     print(result)
