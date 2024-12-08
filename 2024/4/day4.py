@@ -49,11 +49,50 @@ def check_direction(word_search_matrix, i, j, di, dj):
     return False
 
 
+def find_x_mases(word_search_matrix):
+    x_mas_count = 0
+    for i, row in enumerate(word_search_matrix):
+        for j, letter in enumerate(row):
+            if letter == "A" and x_fits(word_search_matrix, i, j):
+                x_mases = check_around_a(word_search_matrix, i, j)
+                x_mas_count += x_mases
+    return x_mas_count
+
+
+def x_fits(word_search_matrix, i, j):
+    return 0 <= i - 1 \
+        and 0 <= j - 1 \
+        and 0 <= i + 1 < len(word_search_matrix) \
+        and 0 <= j + 1 < len(word_search_matrix[0])
+
+
+def check_around_a(word_search_matrix, i, j):
+    x_mases = 0
+
+    # up-left to down-right
+    if (word_search_matrix[i - 1][j - 1] == "M"
+            and word_search_matrix[i + 1][j + 1] == "S") \
+            or (word_search_matrix[i - 1][j - 1] == "S"
+                and word_search_matrix[i + 1][j + 1] == "M"):
+        # up-right to down-left
+        if (word_search_matrix[i - 1][j + 1] == "M"
+                and word_search_matrix[i + 1][j - 1] == "S") \
+                or (word_search_matrix[i - 1][j + 1] == "S"
+                    and word_search_matrix[i + 1][j - 1] == "M"):
+            x_mases += 1
+            # print(f"Found XMAS at ({i}, {j})")
+
+    return x_mases
+
+
 if __name__ == '__main__':
     input = read_input('./input.in')
 
     # for row in input:
     #     print(' '.join(row))
 
-    total_xmases = find_xmases(input)
-    print(total_xmases)
+    # total_xmases = find_xmases(input)
+    # print(total_xmases)
+
+    total_x_mases = find_x_mases(input)
+    print(total_x_mases)
