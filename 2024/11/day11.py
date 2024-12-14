@@ -1,40 +1,59 @@
-from tqdm import tqdm
-
 
 def read_input(file_path):
     with open(file_path, 'r') as file:
         return [int(x) for x in file.read().strip().split(' ')]
 
 
-def update_stone(stones, stone_index):
-    stone = stones[stone_index]
+def evolve_stone(blinks, stone, cache):
+    if (blinks, stone) in cache:
+        return cache[(blinks, stone)]
+
+    if blinks == 0:
+        return 1
 
     if stone == 0:
-        stones[stone_index] = 1
-        return stone_index + 1
-    elif len(str(stone)) % 2 == 0:
-        first_stone_half = int(str(stone)[:len(str(stone))//2])
-        second_stone_half = int(str(stone)[len(str(stone))//2:])
-        new_stones = [first_stone_half, second_stone_half]
-        stones[stone_index:stone_index + 1] = new_stones
-        return stone_index + 2
+        result = evolve_stone(blinks - 1, 1, cache)
     else:
-        stones[stone_index] = stone * 2024
-        return stone_index + 1
+        stone_str = str(stone)
+        if len(stone_str) % 2 == 0:
+            mid = len(stone_str) // 2
+            first_stone_half = int(stone_str[:mid])
+            second_stone_half = int(stone_str[mid:])
+            result = (evolve_stone(blinks - 1, first_stone_half, cache) +
+                      evolve_stone(blinks - 1, second_stone_half, cache))
+        else:
+            result = evolve_stone(blinks - 1, stone * 2024, cache)
+
+    cache[(blinks, stone)] = result
+    return result
 
 
-def blink(stones):
-    stone_index = 0
-    while stone_index < len(stones):
-        stone_index = update_stone(stones, stone_index)
+def process_stones(stones, blinks):
+    cache = {}
+    total_stones = 0
+    for stone in stones:
+        total_stones += evolve_stone(blinks, stone, cache)
+        print("Done with stone")
+
+    return total_stones
+
+
+def flatten(lst):
+    flat_list = []
+    for item in lst:
+        if isinstance(item, list):
+            flat_list.extend(flatten(item))
+        else:
+            flat_list.append(item)
+    return flat_list
 
 
 if __name__ == '__main__':
     stones = read_input('input.in')
     print(stones)
 
-    for i in tqdm(range(25)):
-        blink(stones)
-        # print(len(stones))
+    blinks = 75
+    evolved_stone_count = process_stones(stones, blinks)
 
-    print(f"Number of stones: {len(stones)}")
+    print(f"Number of stones: {evolved_stone_count}")
+    # print(f"Evolutions: {evolved_stones}")
