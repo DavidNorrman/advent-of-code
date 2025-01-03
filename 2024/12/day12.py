@@ -58,28 +58,43 @@ def get_adjacent_plants_and_fences(locations, current_location, fences):
 
 
 if __name__ == "__main__":
-    plant_locations = read_input('test_input.in')
+    plant_locations = read_input('input.in')
 
     total_cost = 0
     for plant, locations in plant_locations.items():
-        if plant != 'R':
-            continue
+        # if plant != 'J':
+        #     continue
         while len(locations) > 0:
             start_location = next(iter(locations))
             area, fences, visited = get_plant_region(
                 locations, start_location, 0, {}, set()
             )
+            sides = 0
             for direction in fences:
-                print(f"Fence: {direction} -> {fences[direction]}")
-
-            for direction in fences:
+                dir_sides = 1
                 if direction[0] != 0:
-                    pass
+                    fences[direction].sort(key=lambda x: (x[0], x[1]))
+                    
+                    start_side = fences[direction].pop(0)
+                    for fence in fences[direction]:
+                        if fence[0] != start_side[0] or fence[1] != start_side[1] + 1:
+                            dir_sides += 1
+                        start_side = fence
                 else:
-                    pass
+                    fences[direction].sort(key=lambda x: (x[1], x[0]))
 
-            print(f"Plant {plant} -> {area} = {area}")
-            # total_cost += area * perimiter
+                    start_side = fences[direction].pop(0)
+                    for fence in fences[direction]:
+                        if fence[1] != start_side[1] or fence[0] != start_side[0] + 1:
+                            dir_sides += 1
+                        start_side = fence
+                
+                #print(f"Fence: {direction} -> {fences[direction]}, sides: {dir_sides}")
+                sides += dir_sides
+
+
+            # print(f"Plant {plant} -> {area * sides} = {area} * {sides}")
+            total_cost += area * sides
             locations = locations - visited
 
     print(f"Total cost: {total_cost}")
