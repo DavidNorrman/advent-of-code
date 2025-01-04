@@ -1,5 +1,4 @@
 import re
-import numpy as np
 from sympy import symbols, Eq, solve
 
 
@@ -50,16 +49,13 @@ if __name__ == '__main__':
         
         if len(solutions) == 0:
             # print('No solution')
-            # print('---')
             continue
 
-        min_cost = np.inf
-        for solution in solutions:
-            cost = 3 * solution[0] + solution[1]
-            # print(f'n: {solution[0]}, m: {solution[1]}, Cost: 3n + m = {cost}')
-            if cost < min_cost:
-                min_cost = cost
-        total_cost += min_cost
-        # print('---')
+        solution = solutions.pop()
+        cost = 3 * solution[0] + solution[1]
+
+        # print(f'n: {solution[0]}, m: {solution[1]}')
+        # print(f'Cost: {cost}')
+        total_cost += cost
 
     print(total_cost)
