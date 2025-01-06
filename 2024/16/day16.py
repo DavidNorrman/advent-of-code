@@ -92,25 +92,32 @@ def possible_moves(maze, location):
 
 def find_path(maze_graph, start, end, start_direction):
     queue = [(0, start, start_direction)]
-    costs = {start: 0}
-    paths = {start: [(start, start_direction)]}
+    costs = {(start, start_direction): 0}
+    paths = {(start, start_direction): [[(start, start_direction)]]}
 
     while queue:
         current_cost, current_location, current_direction = heapq.heappop(queue)
 
-        if current_location == end:
-            print('End found')
-            return current_cost, paths[current_location]
-        
         for move in maze_graph[current_location]:
             new_location, new_direction = move
             new_cost = current_cost + get_move_weight(current_direction, new_direction)
             
-            if new_location not in costs or new_cost < costs[new_location]:
-                costs[new_location] = new_cost
+            if (new_location, new_direction) not in costs or new_cost < costs[(new_location, new_direction)]:
+                costs[(new_location, new_direction)] = new_cost
                 heapq.heappush(queue, (new_cost, new_location, new_direction))
-                paths[new_location] = paths[current_location] + [(new_location, new_direction)]
-    return -1
+                paths[(new_location, new_direction)] = [path + [(new_location, new_direction)] for path in paths[(current_location, current_direction)]]
+            elif new_cost == costs[(new_location, new_direction)]:
+                paths[(new_location, new_direction)].extend([path + [(new_location, new_direction)] for path in paths[(current_location, current_direction)]])
+                
+    end_costs = [(cost, dir) for (loc, dir), cost in costs.items() if loc == end]
+    min_cost = min([cost for cost, _ in end_costs])
+
+    end_paths = []
+    for (loc, dir), cost in costs.items():
+        if loc == end and cost == min_cost:
+            end_paths.extend(paths[(loc, dir)])
+    
+    return min_cost, end_paths
 
 
 if __name__ == '__main__':
@@ -120,13 +127,16 @@ if __name__ == '__main__':
     start_direction = '>'
 
     maze_graph = construct_maze_graph(maze)
-    cost, path = find_path(maze_graph, start, end, start_direction)
+    cost, paths = find_path(maze_graph, start, end, start_direction)
 
-    for location, direction in path:
-        if maze[location.x][location.y] not in ['S', 'E']:
-            maze[location.x][location.y] = direction
+    good_seats = set()
+    for path in paths:
+        for location, _ in path:
+            good_seats.add(location)
+            maze[location.x][location.y] = 'O'
 
-    for line in maze:
-        print(''.join(line))
+    # for line in maze:
+    #     print(''.join(line))
 
     print(f'Cost: {cost}')
+    print(f'Good seats: {len(good_seats)}')
