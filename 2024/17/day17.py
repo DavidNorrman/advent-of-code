@@ -78,29 +78,46 @@ def read_input(file):
         C = int(register_c_line.split(' ')[2])
 
         f.readline()
-        program_code = f.readline().strip().split(' ')[1].split(',')
+        program_code = [int(i) for i in f.readline().strip().split(' ')[1].split(',')]
     return A, B, C, program_code
+
+
+def compiled_program(a, b):
+    # "compiled" program code, returns the result from the out step
+    return (((b ^ 2) ^ ((a + b) >> (b ^ 2))) ^ 7) & 7
+
 
 if __name__ == '__main__':
     A,B,C, program_code = read_input('input.in')
+    
+    # Part 1
+    print("Part 1")
+    # set A to verify part 2: A = ...
     tbc = ThreeBitComputer(A, B, C)
-
-    # print(A, B, C)
-    # print(program_code)
 
     outputs = []
     while tbc.instruction_pointer < len(program_code):
-        # print("-------------------")
         instruction = int(program_code[tbc.instruction_pointer])
         operand = int(program_code[tbc.instruction_pointer + 1])
         out_value = tbc.perform_instruction(instruction, operand)
+
         if out_value is not None:
             outputs.append(out_value)
-        # print("Registers", tbc.A, tbc.B, tbc.C)
-        # print(tbc.instructions[instruction].__name__, "(", operand, ")", "->", out_value)
-        # print("Instruction Pointer", tbc.instruction_pointer)
 
     output_string = ','.join(map(str, outputs))
-    print(output_string)
+    print(output_string, '\n')
+
+    # Part 2
+    print("Part 2")
+    a = 0
+    for i, nr in enumerate(program_code[::-1]):
+        a = a << 3
+        for b in range(8):
+            out = compiled_program(a, b)
+            if out == nr:
+                a += b
+                break
+    print(a)
+
 
 
