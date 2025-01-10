@@ -34,7 +34,7 @@ def read_input(file):
     with open(file) as f:
         for line in f:
             split_line = line.strip().split(',')
-            coordinates.append((int(split_line[0]), int(split_line[1])))
+            coordinates.append(Vector(int(split_line[0]), int(split_line[1])))
     return coordinates
 
 def get_grid(x_len, y_len):
@@ -85,18 +85,22 @@ def in_bounds(grid, location):
 if __name__ == '__main__':
     coordinates = read_input('input.in')
     width, height = 71, 71
-    grid = get_grid(width, height)
-
-    simulate_byte_fall(grid, coordinates, 1024)
+    
     start = Vector(0, 0)
     end = Vector(width - 1, height - 1)
 
-    escape_path = find_path(grid, start, end)
+    grid = get_grid(width, height)
+    last_byte = 0
+    best_path = find_path(grid, start, end)
+    for i, coordinate in enumerate(coordinates):
+        grid[coordinate.y][coordinate.x] = '#'
 
-    for location in escape_path:
-        grid[location.y][location.x] = 'O'
-    
-    for row in grid:
-        print(' '.join(row))
-
-    print("Escape path length: ", len(escape_path) - 1)
+        if coordinate in best_path:
+            best_path = find_path(grid, start, end)
+            if best_path is None:
+                last_byte = i
+                break
+            
+    last_coordinate = f"{coordinates[last_byte].x},{coordinates[last_byte].y}"
+    print("Last byte to escape:", last_byte) 
+    print("Last coordinate:", last_coordinate)
