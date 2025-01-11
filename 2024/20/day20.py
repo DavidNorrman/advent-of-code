@@ -36,8 +36,8 @@ def get_possible_cheats(path, location):
 def move(location, direction):
     return (location[0] + direction[0], location[1] + direction[1])
 
-def get_time_saved(path, location, cheat_location):
-    return (path[cheat_location] - path[location]) - 2
+def get_time_saved(path, location, cheat_location, distance=2):
+    return (path[cheat_location] - path[location]) - distance
 
 if __name__ == '__main__':
     maze = read_input('input.in')
@@ -45,17 +45,23 @@ if __name__ == '__main__':
     end = find_symbol(maze, 'E')
 
     path = get_race_path(maze, start, end)
-    cheat_times = {}
-    for location in path:
-        for cheat_location in get_possible_cheats(path, location):
-            time_saved = get_time_saved(path, location, cheat_location)
-            if time_saved not in cheat_times:
-                cheat_times[time_saved] = 0
-            cheat_times[time_saved] += 1
+    at_least_100 = 0
+
+    # Part 1
+    # for location in path:
+    #     for cheat_location in get_possible_cheats(path, location):
+    #         time_saved = get_time_saved(path, location, cheat_location)
+    #         if time_saved >= 100:
     
-    nr_min_100 = 0
-    for time_saved, count in sorted(cheat_times.items()):
-        if time_saved >= 100:
-            nr_min_100 += count
-        #print("Nr cheats:", count, "\ttime saved:", time_saved)
-    print("Nr cheats with time saved >= 100:", nr_min_100)
+    # Part 2
+    max_distance = 20
+    for location in path:
+        for i in range(-max_distance, max_distance + 1):
+            for j in range(-max_distance + abs(i), max_distance + 1 - abs(i)):
+                cheat_location = move(location, (i, j))
+                if cheat_location in path and path[cheat_location] > path[location]:
+                    time_saved = get_time_saved(path, location, cheat_location, abs(i) + abs(j))
+                    if time_saved >= 100:
+                        at_least_100 += 1
+    
+    print("Nr cheats with time saved >= 100:", at_least_100)
