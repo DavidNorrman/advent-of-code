@@ -39,9 +39,8 @@ def process_keypad_moves(move_dict, keypad):
 def run_robots(code, move_dict, remaining_robots, memo):
     if (code, remaining_robots) in memo:  return memo[(code, remaining_robots)]
     if remaining_robots == 0: return len(code)
-    code = 'A' + code
-    n_steps = sum([run_robots(move_dict[(code[i], code[i+1])] + 'A', move_dict, remaining_robots - 1, memo) for i in range(len(code) - 1)])
-    memo[(code[1:], remaining_robots)] = n_steps
+    n_steps = sum([run_robots(move_dict[('A' if i == 0 else code[i-1], code[i])] + 'A', move_dict, remaining_robots - 1, memo) for i in range(len(code))])
+    memo[(code, remaining_robots)] = n_steps
     return n_steps
 
 if __name__ == '__main__':
