@@ -1,35 +1,13 @@
-
 class Vector:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __add__(self, other):
-        return Vector(self.x + other.x, self.y + other.y)
-
-    def __sub__(self, other):
-        return Vector(self.x - other.x, self.y - other.y)
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
-
-    def __hash__(self):
-        return hash((self.x, self.y))
-    
-    def __lt__(self, other):
-        return (self.x, self.y) < (other.x, other.y)
-
-    def __repr__(self):
-        return f'({self.x}, {self.y})'
-
+    def __init__(self, x, y): self.x, self.y = x, y
+    def __add__(self, other): return Vector(self.x + other.x, self.y + other.y)
+    def __sub__(self, other): return Vector(self.x - other.x, self.y - other.y)
 
 directions = {
-    '<': Vector(-1, 0),
-    'v': Vector(0, 1),
-    '^': Vector(0, -1),
-    '>': Vector(1, 0),
+    '^': Vector(0, -1), 'v': Vector(0, 1),
+    '<': Vector(-1, 0), '>': Vector(1, 0),
 }
-steps_value = {'<': 5, 'v': 4, '^': 3, '>': 2, 'A': 1}
+step_weights = {'<': 0, 'v': 1, '^': 2, '>': 3}
 
 directional_keypad = {
     'E': Vector(0, 0), '^': Vector(1, 0), 'A': Vector(2, 0),
@@ -43,76 +21,33 @@ numeric_keypad = {
     'E': Vector(0, 3), '0': Vector(1, 3), 'A': Vector(2, 3),
 } 
 
-def get_keypad_directions(code, keypad):
-    key_pointer = 'A'
-    steps = []
-    for char in code:
-        current_location = keypad[key_pointer]
-        next_location = keypad[char]
-        if char != key_pointer:
-            new_steps = get_required_steps(current_location, next_location)
-            optimized_steps = optimize_steps(current_location, new_steps, keypad)
-            steps.extend(optimized_steps)
-        steps.append('A')
-        key_pointer = char
-    return steps
+def process_keypad_moves(move_dict, keypad):
+    for key, loc in keypad.items():
+        for next_key, next_loc in keypad.items():
+            key_pair = (key, next_key)
+            distance = next_loc - loc
+            if loc.x == keypad['E'].x and next_loc.y == keypad['E'].y:
+                move_dict[key_pair] =  (('>' if distance.x > 0 else '<') * abs(distance.x)) + (('v' if distance.y > 0 else '^') * abs(distance.y))
+            elif loc.y == keypad['E'].y and next_loc.x == keypad['E'].x:
+                move_dict[key_pair] = (('v' if distance.y > 0 else '^') * abs(distance.y)) +  (('>' if distance.x > 0 else '<') * abs(distance.x))
+            else:
+                move_dict[key_pair] = ''.join(sorted((
+                    (('v' if distance.y > 0 else '^') * abs(distance.y)) +
+                    (('>' if distance.x > 0 else '<') * abs(distance.x))
+                ), key=lambda step: step_weights[step]))
 
-def get_required_steps(location, next_location):
-    distance = next_location - location
-    steps = []
-    steps.extend('>' * distance.x if distance.x > 0 else '<' * abs(distance.x))
-    steps.extend('v' * distance.y if distance.y > 0 else '^' * abs(distance.y))
-    return steps
-
-def optimize_steps(location, steps, keypad):
-    steps.sort(key=lambda step: steps_value[step], reverse=True)
-    grouped_steps = group_steps(steps)
-
-    for i in range(len(grouped_steps) - 1):
-        step, count = grouped_steps[i]
-        for _ in range(count):
-            if is_illegal_position(location + directions[step], keypad):
-                grouped_steps[i], grouped_steps[i + 1] = grouped_steps[i + 1], grouped_steps[i]
-                break
-            location += directions[step]
-
-    return [step for step, count in grouped_steps for _ in range(count)]
-
-def is_illegal_position(location, keypad):
-    return location == keypad['E']
-
-def group_steps(steps):
-    grouped_steps = []
-    current_char = steps[0]
-    count = 0
-    for step in steps:
-        if step == current_char:
-            count += 1
-        else:
-            grouped_steps.append((current_char, count))
-            current_char = step
-            count = 1
-    grouped_steps.append((current_char, count))
-    return grouped_steps
+def run_robots(code, move_dict, remaining_robots, memo):
+    if (code, remaining_robots) in memo:  return memo[(code, remaining_robots)]
+    if remaining_robots == 0: return len(code)
+    code = 'A' + code
+    n_steps = sum([run_robots(move_dict[(code[i], code[i+1])] + 'A', move_dict, remaining_robots - 1, memo) for i in range(len(code) - 1)])
+    memo[(code[1:], remaining_robots)] = n_steps
+    return n_steps
 
 if __name__ == '__main__':
     codes = [line.strip() for line in open('input.in')]
-
-    total_complexity = 0
-    for code in codes:
-        num_steps = get_keypad_directions(code, numeric_keypad)
-        dir_steps_one = get_keypad_directions(num_steps, directional_keypad)
-        dir_steps_two = get_keypad_directions(dir_steps_one, directional_keypad)
-
-        # print(f'{code}:', ''.join(code))
-        # print(f'{code}:', ''.join(num_steps))
-        # print(f'{code}:', ''.join(dir_steps_one))
-        # print(f'{code}:', ''.join(dir_steps_two))
-
-        complexity = len(dir_steps_two) * int(code[:-1])
-        print(f'Lenght: {len(dir_steps_two)}, Code nr: {int(code[:-1])}, Complexity:', complexity)
-        total_complexity += complexity
-    print('Total complexity:', total_complexity)
-
-
-        
+    move_dict = {}
+    process_keypad_moves(move_dict, numeric_keypad)
+    process_keypad_moves(move_dict, directional_keypad)
+    results = [(code, run_robots(code, move_dict, 26, {}) * int(code[:-1])) for code in codes]
+    print('Total complexity:', sum(complexity for _, complexity in results))
