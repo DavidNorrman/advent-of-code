@@ -1,29 +1,29 @@
-import networkx as nx
-import matplotlib.pyplot as plt
-
 class Gate:
     def __init__(self, name, value=None, logic=None):
         self.name = name
         self.value = value
         self.logic = logic
+        self.outputs = []
+
         if logic is not None:
             self.input_a = logic[0]
             self.input_b = logic[1]
             self.operation = logic[2]
-
-    def get_output(self):
-        if self.value is not None:
-            return self.value
-        if self.operation is not None:
-            self.value = apply_operation(
-                self.input_a.get_output(), self.operation, self.input_b.get_output()
-            )
-            return self.value
+        
+    def is_z(self):
+        return self.name[0] == 'z'
+    
+    def is_input(self):
+        return self.name[0] in ['x', 'y']
     
     def __repr__(self):
-        if self.operation is not None:
-            return f'{self.name}: {self.operation[0].name} {self.operation[2]} {self.operation[1].name} -> {self.value}'
-        else: return f'{self.name}: {self.value}'
+        logic_string = ''
+        if not self.is_input():
+            input_a = f"{self.input_a.name} - {self.input_a.value}" if self.input_a.is_input() else f"{self.input_a.name} - {self.input_a.operation}"
+            input_b = f"{self.input_b.name} - {self.input_b.value}" if self.input_b.is_input() else f"{self.input_b.name} - {self.input_b.operation}"
+            logic_string =  f': ({input_a}) {self.operation} ({input_b}) '
+        output_string = '' if self.is_z() else '-> (' + ', '.join([(output.name + ' ' + output.operation) for output in self.outputs]) + ')'
+        return self.name + ' ' + str(self.value) + logic_string + output_string
 
 def AND(wire_1, wire_2): return wire_1 & wire_2
 def OR(wire_1, wire_2): return wire_1 | wire_2
@@ -35,7 +35,7 @@ def apply_operation(wire_1, operation, wire_2):
 def traverse_circuit(circuit, wire):
     if circuit[wire].value is not None:
         return circuit[wire].value
-    if circuit[wire].logic is not None:
+    else:
         circuit[wire].value = apply_operation(
             traverse_circuit(circuit, circuit[wire].input_a.name),
             circuit[wire].operation,
@@ -45,6 +45,7 @@ def traverse_circuit(circuit, wire):
 
 if __name__ == '__main__':
     circuit = {}
+    operations = []
     with open('input.in') as f:
         for line in f:
             if line == '\n':
@@ -59,31 +60,62 @@ if __name__ == '__main__':
             if wire_b not in circuit:
                 circuit[wire_b] = Gate(wire_b)
             circuit[output_wire] = Gate(output_wire, logic=(circuit[wire_a], circuit[wire_b], operation))
+            circuit[wire_a].outputs.append(circuit[output_wire])
+            circuit[wire_b].outputs.append(circuit[output_wire])
+            
+            for wire in circuit:
+                if circuit[wire].logic is not None:
+                    if circuit[wire].input_a.name == output_wire:
+                        circuit[wire].input_a = circuit[output_wire]
+                        circuit[output_wire].outputs.append(circuit[wire])
+                    if circuit[wire].input_b.name == output_wire:
+                        circuit[wire].input_b = circuit[output_wire]
+                        circuit[output_wire].outputs.append(circuit[wire])
 
     # Part 1
-    z_values = [traverse_circuit(circuit, z_wire) for z_wire in sorted([key for key in circuit if key.startswith('z')], reverse=True)]
-    print('Z:', int(''.join([str(z) for z in z_values]), 2))
+    z_values = ''.join([str(traverse_circuit(circuit, z_wire)) for z_wire in sorted([key for key in circuit if key.startswith('z')], reverse=True)])
+    print('Z:', int(z_values, 2))
 
     # Part 2
-    G = nx.DiGraph()
-    for wire, gate in circuit.items():
-        G.add_node(wire, label=gate.name)
-        if gate.logic is not None:
-            G.add_edge(gate.input_a.name, wire)
-            G.add_edge(gate.input_b.name, wire)
+    faulty_gates = set()
+    print("if it is a z gate, the operation must be XOR unless it's z45")
+    for wire in circuit:
+        if circuit[wire].is_z():
+            if circuit[wire].operation != 'XOR' and wire != 'z45':
+                print(circuit[wire])
+                faulty_gates.add(wire)
 
-    pos = nx.nx_agraph.graphviz_layout(G, prog="dot")
+    print("if it is not a z gate, and inputs are not x and y, it can't be an XOR gate")
+    for wire in circuit:
+        if not circuit[wire].is_input() and not circuit[wire].is_z():
+            if not circuit[wire].input_a.is_input() and not circuit[wire].input_b.is_input():
+                if circuit[wire].operation == 'XOR':
+                    print(circuit[wire])
+                    faulty_gates.add(wire)
 
-    node_labels = {wire: gate.operation if gate.logic is not None else gate.value for wire, gate in circuit.items()}
-    label_pos = {node: (x, y - 7) for node, (x, y) in pos.items()}
-    plt.figure(figsize=(8, 6))
-    nx.draw(G, pos, with_labels=True, node_size=2000, node_color="lightblue", font_size=7, arrowsize=20)
-    nx.draw_networkx_labels(G, label_pos, node_labels, font_size=12, font_color="black")
-    plt.title("Graph Layout")
-    plt.show()
+    print("if the operation is XOR, and the inputs are x and y, there must be an XOR gate after it")
+    for wire in circuit:
+        if not circuit[wire].is_input() and circuit[wire].operation == 'XOR':
+            if circuit[wire].input_a.is_input() and circuit[wire].input_b.is_input():
+                has_xor = False
+                for output in circuit[wire].outputs:
+                    if output.operation == 'XOR':
+                        has_xor = True
+                        break
+                if not has_xor and wire != 'z00':
+                    print(circuit[wire])
+                    faulty_gates.add(wire)
 
-    # Checking if the circuit is correct
-    x_values = ''.join([str(circuit[x_wire]) for x_wire in sorted([key for key in circuit if key.startswith('x')], reverse=True)])
-    y_values = ''.join([str(circuit[y_wire]) for y_wire in sorted([key for key in circuit if key.startswith('y')], reverse=True)])
-    print('X:', int(x_values, 2), '+ Y:', int(y_values, 2), '=', int(x_values, 2) + int(y_values, 2))
-    print('Z:', int(z_values, 2))
+    print("if it is an AND gate, there must be an OR gate after it")
+    for wire in circuit:
+        if not circuit[wire].is_input() and circuit[wire].operation == 'AND':
+            has_or = False
+            for output in circuit[wire].outputs:
+                if output.operation == 'OR':
+                    has_or = True
+                    break
+            if not has_or and circuit[wire].input_a.name not in ['x00', 'y00']:
+                print(circuit[wire])
+                faulty_gates.add(wire)
+
+    print(','.join(sorted(faulty_gates)))
