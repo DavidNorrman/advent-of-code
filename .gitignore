@@ -1,2 +1,7 @@
 .venv
 .vscode
+.DS_Store
+
+input.in
+Cargo.lock
+target/
