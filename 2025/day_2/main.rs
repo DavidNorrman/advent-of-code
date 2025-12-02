@@ -38,7 +38,7 @@ fn _second_part_filter(id: &i64) -> bool {
         .filter(|i| id_length % i == 0)
         .map(|divisor| {
             let part_length = id_length / divisor;
-            let parts: Vec<String> = (0..divisor)
+            let parts: Vec<i32> = (0..divisor)
                 .map(|i| id_string[i * part_length..(i + 1) * part_length].parse().unwrap())
                 .collect();
             parts
