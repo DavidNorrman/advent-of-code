@@ -1,10 +1,10 @@
 use std::fs::read_to_string;
 use union_find::{QuickUnionUf, UnionBySize, UnionFind};
-use std::collections::HashMap;
+use itertools::Itertools;
 
 fn main() {
     let junction_coords: Vec<(i64, i64, i64)> = read_to_string("input.in")
-        .expect("error reading file")
+        .unwrap_or_else(|e| panic!("{}", e))
         .lines()
         .map(|line| {
             let coords: Vec<i64> = line
@@ -15,15 +15,13 @@ fn main() {
         })
         .collect();
     
-    let mut junction_distances: Vec<(usize, usize, f64)> = vec![];
-    for (i, &coord1) in junction_coords.iter().enumerate() {
-        for (j, &coord2) in junction_coords.iter().enumerate() {
-            if j > i { 
-                let distance = straight_line_distance(coord1, coord2);
-                junction_distances.push((i, j, distance));
-            }
-        }
-    }
+    let mut junction_distances: Vec<(usize, usize, f64)> = (0..junction_coords.len())
+        .tuple_combinations()
+        .map(|(i, j)| {
+            let dist = straight_line_distance(junction_coords[i], junction_coords[j]);
+            (i, j, dist)
+        })
+        .collect();
     junction_distances.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
     
     part_one(&junction_coords, &junction_distances);
@@ -33,16 +31,15 @@ fn main() {
 
 fn part_one(coords: &[(i64, i64, i64)], distances: &[(usize, usize, f64)]) {
     let mut connections = QuickUnionUf::<UnionBySize>::new(coords.len());
-    let mut clusters: HashMap<usize, Vec<usize>> = HashMap::new();
-
     for (i, j, _) in distances.iter().take(1000) {
         connections.union(*i, *j);
     }
-
+    
+    let mut cluster_sizes= vec![0; coords.len()];
     for i in 0..coords.len() {
-        clusters.entry(connections.find(i)).or_default().push(i);
+        let root = connections.find(i);
+        cluster_sizes[root] += 1;
     }
-    let mut cluster_sizes: Vec<usize> = clusters.values().map(|v| v.len()).collect();
     cluster_sizes.sort_by(|a, b| b.cmp(a));
 
     println!("Product of largest 3 cluster sizes: {}", 
