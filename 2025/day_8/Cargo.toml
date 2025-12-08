@@ -1,0 +1,11 @@
+[package]
+name = "day_8"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+union-find = "0.4.3"
+
+[[bin]]
+name = "day_8"
+path = "main.rs"
